@@ -1,4 +1,13 @@
 spring:
   application:
     name: kafka-stream-java
-    test: banana
+
+kafka:
+  streams:
+    applicationIdConfig: kafka-stream-java
+    bootstrapServersConfig: localhost:9092
+    defaultKeySerdeClassConfig: org.apache.kafka.common.serialization.Serde$StringSerde
+    defaultValueSerdeClassConfig: org.apache.kafka.common.serialization.Serde$StringSerde
+    topics:
+      input: sandbox
+      output: sandbox-out
