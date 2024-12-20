@@ -1,25 +1,16 @@
 package com.matrix.view.kafka_stream_java;
 
-import com.matrix.view.kafka_stream_java.service.KafkaStream;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.matrix.view.kafka_stream_java.config.KafkaConfig;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.event.EventListener;
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 
 @SpringBootApplication
+@ConfigurationPropertiesScan(basePackageClasses = KafkaConfig.class)
 public class KafkaStreamJavaApplication {
-
-	@Autowired
-	private KafkaStream kafkaStream;
 
 	public static void main(String[] args) {
 		SpringApplication.run(KafkaStreamJavaApplication.class, args);
-	}
-
-	@EventListener(ApplicationReadyEvent.class)
-	public void initStreams() {
-		kafkaStream.initStreams();
 	}
 
 }

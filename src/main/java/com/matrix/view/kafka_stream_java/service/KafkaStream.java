@@ -1,14 +1,12 @@
 package com.matrix.view.kafka_stream_java.service;
 
+import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
-import org.apache.kafka.streams.kstream.KStream;
-import org.apache.kafka.streams.kstream.KTable;
-import org.apache.kafka.streams.kstream.Materialized;
-import org.apache.kafka.streams.kstream.Produced;
+import org.apache.kafka.streams.kstream.*;
 import org.apache.kafka.streams.state.KeyValueStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,45 +18,26 @@ import java.util.Properties;
 @Service
 public class KafkaStream {
 
-    @Value("${kafka.streams.applicationIdConfig}")
-    private String applicationIdConfig;
-
-    @Value("${kafka.streams.bootstrapServersConfig}")
-    private String bootstrapServersConfig;
-
-    @Value("${kafka.streams.defaultKeySerdeClassConfig}")
-    private String defaultKeySerdeClassConfig;
-
-    @Value("${kafka.streams.defaultValueSerdeClassConfig}")
-    private String defaultValueSerdeClassConfig;
-
     @Value("${kafka.streams.topics.input}")
     private String inputTopic;
 
     @Value("${kafka.streams.topics.output}")
     private String outputTopic;
 
+    private static final Serde<String> STRING_SERDE = Serdes.String();
 
-    public void initStreams() {
-        var props = new Properties();
-        props.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationIdConfig);
-        props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServersConfig);
-        props.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
-        props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
+    @Autowired
+    void buildPipeline(StreamsBuilder streamsBuilder) {
+        KStream<String, String> messageStream = streamsBuilder
+                .stream(inputTopic, Consumed.with(STRING_SERDE, STRING_SERDE));
 
-        StreamsBuilder builder = new StreamsBuilder();
-        KStream<String, String> textLines = builder.stream(inputTopic);
-        KTable<String, Long> wordCounts = textLines
-                .flatMapValues(textLine -> Arrays.asList(textLine.toLowerCase().split("\\W+")))
-                .groupBy((key, word) -> word)
-                .count(Materialized.<String, Long, KeyValueStore<Bytes, byte[]>>as(outputTopic));
-        wordCounts.toStream().to(outputTopic, Produced.with(Serdes.String(), Serdes.Long()));
+        KTable<String, Long> wordCounts = messageStream
+                .mapValues((ValueMapper<String, String>) String::toLowerCase)
+                .flatMapValues(value -> Arrays.asList(value.split("\\W+")))
+                .groupBy((key, word) -> word, Grouped.with(STRING_SERDE, STRING_SERDE))
+                .count();
 
-        try (KafkaStreams streams = new KafkaStreams(builder.build(), props)) {
-            streams.start();
-        }
-
+        wordCounts.toStream().to(outputTopic);
     }
-
 
 }
