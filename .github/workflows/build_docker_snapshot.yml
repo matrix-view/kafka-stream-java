@@ -41,6 +41,10 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      - name : Retrieve Version
+        id: version
+        run: echo "::set-output name=current-version::$(${{github.workspace}}/gradlew -q printVersionName)"
+
       - name: Get commit hash
         id: get-commit-hash
         run: echo "::set-output name=commit-hash::$(git rev-parse --short HEAD)"
@@ -51,7 +55,7 @@ jobs:
 
       - name: Get tag
         id: get-tag
-        run: echo "::set-output name=tag::${{ env.DOCKER_REPOSITORY }}:${{ steps.package-version.outputs.current-version }}-${{ steps.get-commit-hash.outputs.commit-hash }}-${{ steps.get-timestamp.outputs.timestamp }}"
+        run: echo "::set-output name=tag::${{ env.DOCKER_REPOSITORY }}:${{ steps.version.outputs.current-version }}-${{ steps.get-commit-hash.outputs.commit-hash }}-${{ steps.get-timestamp.outputs.timestamp }}"
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
